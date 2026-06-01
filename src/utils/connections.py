@@ -14,15 +14,15 @@ class Connections:
         self.cursor: MySQLCursorDict | None = None
 
     def __enter__(self) -> tuple[MySQLConnection, MySQLCursorDict]:
-        """Estabelece a conexão e retorna conexão + cursor do banco.
+        """Establishes the connection and returns the database connection + cursor.
 
         Raises:
-            ValueError: Seção inválida.
-            RuntimeError: Se ocorrer um erro ao conectar ao banco.
+            ValueError: Invalid section.
+            RuntimeError: If an error occurs while connecting to the database.
 
         Returns:
             tuple[MySQLConnection, MySQLCursorDict]:
-                Conexão e cursor do banco de dados.
+                Database connection and cursor.
         """
         config = Config().config(self.section)
 

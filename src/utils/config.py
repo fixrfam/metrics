@@ -3,13 +3,13 @@ import os
 class Config:
 
     def config(self, section: str) -> dict:
-        """Retorna as configurações do banco de dados para a seção.
+        """Returns the database configuration for the given section.
 
         Args:
-            section (str): Nome da seção de configuração.
+            section (str): Name of the configuration section.
 
         Returns:
-            dict: Dicionário com as configurações do banco de dados.
+            dict: Dictionary with database configuration values.
         """
         match section:
             case "fixr":
@@ -21,4 +21,4 @@ class Config:
                     "database": os.getenv("DATABASE_FIXR"),
                 }
             case _:
-                raise ValueError(f"Valor [{section}] inválido!")
+                raise ValueError(f"Invalid value [{section}]!")
