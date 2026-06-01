@@ -1,10 +1,15 @@
 from fastapi import APIRouter
 
-router = APIRouter()
+router = APIRouter(
+    tags=["Health Check"]
+)
 
-
-@router.get("/")
-async def root() -> dict[str, str]:
+@router.get(
+    "/health",
+    summary="Check API Status",
+    description="Returns a message indicating that the Fixr Metrics API is running."
+)
+async def health_check() -> dict[str, str]:
     """Public health check endpoint."""
 
     return {

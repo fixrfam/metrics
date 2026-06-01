@@ -7,6 +7,11 @@ load_dotenv()
 
 app = FastAPI(
     title="Fixr Metrics API",
+    description=(
+        "Centralized API for managing metrics, KPIs and chart data "
+        "across all organizations using Fixr."
+    ),
+    version="1.0.0",
 )
 
 app.include_router(health_router)
