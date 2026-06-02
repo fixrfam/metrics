@@ -1,6 +1,6 @@
 from collections.abc import Generator
 
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
 from sqlalchemy.orm import (
     Session,
     declarative_base,
@@ -69,3 +69,19 @@ def get_db() -> Generator[Session, None, None]:
         yield db
     finally:
         db.close()
+
+
+def check_database_connection(db: Session) -> bool:
+    """Checks whether the database connection is available.
+
+    Args:
+        db: Active SQLAlchemy database session.
+
+    Returns:
+        bool: True if the database is reachable, otherwise False.
+    """
+    try:
+        db.execute(text("SELECT 1"))
+        return True
+    except Exception:
+        return False
