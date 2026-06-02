@@ -22,3 +22,6 @@ class Config:
                 }
             case _:
                 raise ValueError(f"Invalid value [{section}]!")
+
+    def get(self, key: str, default: str | None = None) -> str | None:
+        return os.getenv(key, default)
