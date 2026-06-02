@@ -1,0 +1,111 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Generate GitHub App token
+        id: app-token
+        uses: tibdex/github-app-token@v2
+        with:
+          app_id: ${{ secrets.GH_APP_ID }}
+          private_key: ${{ secrets.GH_APP_PRIVATE_KEY }}
+
+      - name: Set pending status
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ steps.app-token.outputs.token }}
+          script: |
+            await github.rest.repos.createCommitStatus({
+              ...context.repo,
+              sha: context.sha,
+              state: 'pending',
+              context: 'Deploy',
+              description: 'Deployment queued'
+            });
+
+      - name: Trigger deployment
+        run: |
+          curl -s -X POST "${{ secrets.DEPLOY_WEBHOOK }}" \
+            -H "Content-Type: application/json" \
+            -d '{}'
+
+      - name: Set building status
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ steps.app-token.outputs.token }}
+          script: |
+            await github.rest.repos.createCommitStatus({
+              ...context.repo,
+              sha: context.sha,
+              state: 'pending',
+              context: 'Deploy',
+              description: 'Building and deploying...'
+            });
+
+      - name: Wait for deployment
+        id: wait
+        env:
+          COOLIFY_URL: ${{ secrets.COOLIFY_URL }}
+          COOLIFY_TOKEN: ${{ secrets.COOLIFY_TOKEN }}
+          COOLIFY_APP_UUID: ${{ secrets.COOLIFY_APP_UUID }}
+        run: |
+          result="failure"
+
+          for ((i=1; i<=60; i++)); do
+            sleep 15
+            response=$(curl -s -H "Authorization: Bearer $COOLIFY_TOKEN" \
+              "$COOLIFY_URL/api/v1/deployments?appId=$COOLIFY_APP_UUID&limit=1") || true
+
+            if echo "$response" | jq -e '. | length == 0' > /dev/null 2>&1; then
+              break
+            fi
+          done
+
+          status=$(curl -s -H "Authorization: Bearer $COOLIFY_TOKEN" \
+            "$COOLIFY_URL/api/v1/applications/$COOLIFY_APP_UUID" | jq -r '.status') || true
+
+          if [ "$status" = "running:healthy" ]; then
+            result="success"
+          fi
+
+          echo "result=$result" >> $GITHUB_OUTPUT
+
+      - if: steps.wait.outputs.result == 'success'
+        name: Set success status
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ steps.app-token.outputs.token }}
+          script: |
+            await github.rest.repos.createCommitStatus({
+              ...context.repo,
+              sha: context.sha,
+              state: 'success',
+              context: 'Deploy',
+              description: 'Deployed successfully'
+            });
+
+      - if: steps.wait.outputs.result != 'success'
+        name: Set failure status
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ steps.app-token.outputs.token }}
+          script: |
+            await github.rest.repos.createCommitStatus({
+              ...context.repo,
+              sha: context.sha,
+              state: 'failure',
+              context: 'Deploy',
+              description: 'Deployment failed'
+            });
